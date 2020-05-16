@@ -53,11 +53,18 @@ func RecoveryWithWriter(out io.Writer) HandlerFunc {
 				if logger != nil {
 					stack := stack(3)
 					httpRequest, _ := httputil.DumpRequest(c.Request, false)
+					headers := strings.Split(string(httpRequest), "\r\n")
+					for idx, header := range headers {
+						current := strings.Split(header, ":")
+						if current[0] == "Authorization" {
+							headers[idx] = current[0] + ": *"
+						}
+					}
 					if brokenPipe {
 						logger.Printf("%s\n%s%s", err, string(httpRequest), reset)
 					} else if IsDebugging() {
 						logger.Printf("[Recovery] %s panic recovered:\n%s\n%s\n%s%s",
-							timeFormat(time.Now()), string(httpRequest), err, stack, reset)
+							timeFormat(time.Now()), strings.Join(headers, "\r\n"), err, stack, reset)
 					} else {
 						logger.Printf("[Recovery] %s panic recovered:\n%s\n%s%s",
 							timeFormat(time.Now()), err, stack, reset)
@@ -139,6 +146,6 @@ func function(pc uintptr) []byte {
 }
 
 func timeFormat(t time.Time) string {
-	var timeString = t.Format("2006/01/02 - 15:04:05")
+	timeString := t.Format("2006/01/02 - 15:04:05")
 	return timeString
 }
